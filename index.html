@@ -3,120 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ВУЗ Портал - Авторизация</title>
+    <title>ВУЗ Портал</title>
     <style>
-        * { box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: 'Segoe UI', sans-serif; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
-            margin: 0;
-            background: #f4f7f6; 
+            margin: 0; 
+            background: #f0f2f5; 
+            transition: background 0.5s ease;
         }
-        .login-card { 
+        .container { 
             background: white; 
             padding: 2.5rem; 
             border-radius: 12px; 
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
-            width: 100%;
-            max-width: 400px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 380px; 
+            text-align: center; 
         }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 1.5rem; }
-        .input-group { margin-bottom: 1rem; }
+        h2 { color: #1a1a1a; margin-bottom: 1.5rem; }
         input { 
             width: 100%; 
             padding: 12px; 
-            border: 1px solid #dcdde1; 
-            border-radius: 6px; 
-            font-size: 16px;
-            transition: border-color 0.3s;
+            margin: 8px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            font-size: 14px;
         }
-        input:focus { border-color: #3498db; outline: none; }
         button { 
             width: 100%; 
             padding: 12px; 
-            background: #3498db; 
+            background: #007bff; 
             color: white; 
             border: none; 
-            border-radius: 6px; 
-            font-size: 16px; 
-            font-weight: bold;
+            border-radius: 8px; 
             cursor: pointer; 
-            transition: background 0.3s;
+            font-size: 16px; 
+            font-weight: 600;
+            margin-top: 15px; 
         }
-        button:hover { background: #2980b9; }
-        #message { 
-            margin-top: 1.2rem; 
-            text-align: center; 
-            min-height: 24px;
-            font-weight: 500;
+        button:hover { background: #0056b3; }
+        .toggle-link { 
+            margin-top: 20px; 
+            font-size: 14px; 
+            color: #007bff; 
+            cursor: pointer; 
+            text-decoration: underline; 
         }
-        .loader { color: #7f8c8d; font-style: italic; }
+        #welcome-screen { 
+            display: none; 
+            font-size: 42px; 
+            font-weight: bold; 
+            color: #1a1a1a;
+            text-align: center;
+        }
+        #msg { margin-top: 15px; font-size: 14px; min-height: 1em; }
     </style>
 </head>
 <body>
 
-<div class="login-card">
-    <h2>Вход в систему</h2>
-    <div class="input-group">
-        <input type="text" id="username" placeholder="Логин (например, admin)" required>
-    </div>
-    <div class="input-group">
-        <input type="password" id="password" placeholder="Пароль" required>
-    </div>
-    <button id="loginBtn" onclick="login()">Войти</button>
-    <div id="message"></div>
+<div id="auth-ui" class="container">
+    <h2 id="form-title">Вход</h2>
+    
+    <input type="text" id="firstName" placeholder="Имя" style="display:none">
+    <input type="text" id="lastName" placeholder="Фамилия" style="display:none">
+    
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Пароль">
+    
+    <button id="mainBtn" onclick="handleAuth()">Войти</button>
+    <div id="toggleLink" class="toggle-link" onclick="toggleForm()">Нет аккаунта? Регистрация</div>
+    <div id="msg"></div>
 </div>
 
+<div id="welcome-screen"></div>
+
 <script>
-    async function login() {
-        const user = document.getElementById('username').value;
-        const pass = document.getElementById('password').value;
-        const messageDiv = document.getElementById('message');
-        const btn = document.getElementById('loginBtn');
+    let isLoginMode = true;
+    const BACKEND_URL = 'https://vuz-auth-api.onrender.com';
 
-        if (!user || !pass) {
-            messageDiv.style.color = "orange";
-            messageDiv.innerText = "Заполните все поля";
-            return;
-        }
+    function toggleForm() {
+        isLoginMode = !isLoginMode;
+        document.getElementById('form-title').innerText = isLoginMode ? 'Вход' : 'Регистрация';
+        document.getElementById('firstName').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('lastName').style.display = isLoginMode ? 'none' : 'block';
+        document.getElementById('mainBtn').innerText = isLoginMode ? 'Войти' : 'Создать аккаунт';
+        document.getElementById('toggleLink').innerText = isLoginMode ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти';
+        document.getElementById('msg').innerText = "";
+    }
 
-        // Блокируем кнопку на время запроса
-        btn.disabled = true;
-        messageDiv.className = "loader";
-        messageDiv.innerText = "Подключение к серверу...";
+    async function handleAuth() {
+        const msg = document.getElementById('msg');
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
 
-        // ВАЖНО: Используем твой реальный адрес бэкенда на Render
-        const BACKEND_URL = 'https://vuz-auth-api.onrender.com/login';
+        const endpoint = isLoginMode ? '/login' : '/register';
+        const payload = isLoginMode 
+            ? { email, password } 
+            : { 
+                email, password, 
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value 
+              };
 
         try {
-            const response = await fetch(BACKEND_URL, {
+            msg.style.color = "gray";
+            msg.innerText = "Обработка...";
+
+            const response = await fetch(BACKEND_URL + endpoint, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: user, password: pass })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
 
-            if (response.ok && data.success) {
-                messageDiv.style.color = "#27ae60";
-                messageDiv.innerText = data.message;
-                // Тут можно сделать переход: window.location.href = '/dashboard.html';
+            if (data.success) {
+                if (isLoginMode) {
+                    showFinalWelcome(data.name);
+                } else {
+                    msg.style.color = "green";
+                    msg.innerText = "Регистрация успешна! Теперь войдите.";
+                    toggleForm();
+                }
             } else {
-                messageDiv.style.color = "#e74c3c";
-                messageDiv.innerText = data.message || "Ошибка доступа";
+                msg.style.color = "red";
+                msg.innerText = data.message;
             }
-        } catch (error) {
-            console.error('Ошибка:', error);
-            messageDiv.style.color = "#e74c3c";
-            messageDiv.innerText = "Ошибка: Сервер не отвечает или CORS заблокирован";
-        } finally {
-            btn.disabled = false;
+        } catch (err) {
+            msg.style.color = "red";
+            msg.innerText = "Ошибка: сервер не отвечает";
         }
+    }
+
+    function showFinalWelcome(name) {
+        // 1. Прячем форму
+        document.getElementById('auth-ui').style.display = 'none';
+        // 2. Делаем фон чисто белым
+        document.body.style.background = '#ffffff';
+        // 3. Показываем текст
+        const screen = document.getElementById('welcome-screen');
+        screen.style.display = 'block';
+        screen.innerText = `Привет, ${name}!`;
     }
 </script>
 
